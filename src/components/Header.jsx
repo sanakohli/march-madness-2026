@@ -4,6 +4,7 @@ export default function Header({ activeTab, setActiveTab, gender, setGender }) {
     { id: 'bracket',   label: 'My Bracket' },
     { id: 'compare',   label: 'Compare' },
     { id: 'regions',   label: 'Regions' },
+    { id: 'simulate',  label: 'Simulate' },
   ];
 
   return (
