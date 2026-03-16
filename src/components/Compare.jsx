@@ -24,7 +24,7 @@ function StatRow({ label, a, b, higherIsBetter = true }) {
 
 export default function Compare() {
   const [teamA, setTeamA] = useState(TEAMS.find(t => t.id === 'duke'));
-  const [teamB, setTeamB] = useState(TEAMS.find(t => t.id === 'auburn'));
+  const [teamB, setTeamB] = useState(TEAMS.find(t => t.id === 'michigan'));
 
   const radarData = [
     { stat: 'Off Rtg',  [teamA.name]: teamA.offRtg,                      [teamB.name]: teamB.offRtg },
