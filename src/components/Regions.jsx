@@ -13,10 +13,10 @@ const STYLE_BADGE = {
   'Post-Dominant':  'bg-orange-500/20 text-orange-400',
 };
 
-function TeamCard({ team }) {
+function TeamCard({ team, upsetHistory }) {
   const net = (team.offRtg - team.defRtg).toFixed(1);
   const matchup = `${team.seed}v${17 - team.seed}`;
-  const historicalRate = UPSET_HISTORY[matchup];
+  const historicalRate = upsetHistory[matchup];
   const upsetPct = historicalRate ? ((1 - historicalRate) * 100).toFixed(0) : null;
 
   return (
@@ -150,7 +150,7 @@ export default function Regions({ bracketData = defaultData }) {
 
       {/* Team cards grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {sorted.map(t => <TeamCard key={t.id} team={t} />)}
+        {sorted.map(t => <TeamCard key={t.id} team={t} upsetHistory={UPSET_HISTORY} />)}
       </div>
 
       {/* Cross-region comparison */}

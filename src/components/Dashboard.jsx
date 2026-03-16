@@ -32,9 +32,9 @@ function TeamRow({ team, rank }) {
   );
 }
 
-function UpsetAlert({ team }) {
+function UpsetAlert({ team, upsetHistory }) {
   const matchup = `${team.seed}v${17 - team.seed}`;
-  const historicalRate = UPSET_HISTORY[matchup] || 0.5;
+  const historicalRate = upsetHistory[matchup] || 0.5;
   const upsetPct = ((1 - historicalRate) * 100).toFixed(0);
   return (
     <div className={`flex items-center gap-3 p-3 rounded-lg border ${RISK_BG[team.upsetRisk]}`}>
@@ -138,7 +138,7 @@ export default function Dashboard({ bracketData = defaultData }) {
           <h2 className="text-white font-semibold mb-1">Upset Alerts</h2>
           <p className="text-xs text-slate-500 mb-3">Seeds 10–13 with strong metrics — historical upset rates</p>
           <div className="space-y-2">
-            {upsetPicks.map(t => <UpsetAlert key={t.id} team={t} />)}
+            {upsetPicks.map(t => <UpsetAlert key={t.id} team={t} upsetHistory={UPSET_HISTORY} />)}
           </div>
         </div>
 
