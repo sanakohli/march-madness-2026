@@ -4,19 +4,29 @@ import Dashboard from './components/Dashboard';
 import Bracket from './components/Bracket';
 import Compare from './components/Compare';
 import Regions from './components/Regions';
+import * as menData from './data/teams';
+import * as womenData from './data/wteams';
 import './index.css';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [gender, setGender] = useState('men');
+
+  const bracketData = gender === 'men' ? menData : womenData;
 
   return (
     <div className="min-h-screen bg-court-950">
-      <Header activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Header
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        gender={gender}
+        setGender={setGender}
+      />
       <main className="pb-12">
-        {activeTab === 'dashboard' && <Dashboard />}
-        {activeTab === 'bracket'   && <Bracket />}
-        {activeTab === 'compare'   && <Compare />}
-        {activeTab === 'regions'   && <Regions />}
+        {activeTab === 'dashboard' && <Dashboard bracketData={bracketData} />}
+        {activeTab === 'bracket'   && <Bracket   bracketData={bracketData} />}
+        {activeTab === 'compare'   && <Compare   bracketData={bracketData} />}
+        {activeTab === 'regions'   && <Regions   bracketData={bracketData} />}
       </main>
     </div>
   );

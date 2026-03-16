@@ -1,4 +1,4 @@
-import { TEAMS, UPSET_HISTORY } from '../data/teams';
+import * as defaultData from '../data/teams';
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip } from 'recharts';
 
 const RISK_COLOR = { Low: 'text-emerald-400', Medium: 'text-yellow-400', High: 'text-red-400' };
@@ -53,13 +53,15 @@ function UpsetAlert({ team }) {
   );
 }
 
-export default function Dashboard() {
+export default function Dashboard({ bracketData = defaultData }) {
+  const { TEAMS, UPSET_HISTORY } = bracketData;
   const sorted = [...TEAMS].sort((a, b) => (b.offRtg - b.defRtg) - (a.offRtg - a.defRtg));
   const top10 = sorted.slice(0, 10);
   const upsetPicks = TEAMS.filter(t => t.seed >= 10 && t.seed <= 13 && t.upsetRisk !== 'Low')
     .sort((a, b) => (b.offRtg - b.defRtg) - (a.offRtg - a.defRtg))
     .slice(0, 6);
 
+  const REGIONS = bracketData.REGIONS;
   const ones = TEAMS.filter(t => t.seed === 1);
 
   // Radar data for top 4 #1 seeds
@@ -74,7 +76,7 @@ export default function Dashboard() {
 
   const SEED_COLORS = ['#f97316', '#3b82f6', '#22c55e', '#a855f7'];
 
-  const regionStrength = ['East', 'West', 'South', 'Midwest'].map(r => {
+  const regionStrength = REGIONS.map(r => {
     const teams = TEAMS.filter(t => t.region === r);
     const avgNet = teams.reduce((s, t) => s + (t.offRtg - t.defRtg), 0) / teams.length;
     const avgKenpom = teams.reduce((s, t) => s + t.kenpom, 0) / teams.length;

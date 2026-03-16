@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getTeamsByRegion, REGIONS, UPSET_HISTORY } from '../data/teams';
+import * as defaultData from '../data/teams';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const RISK_COLOR = { Low: '#22c55e', Medium: '#eab308', High: '#f97316' };
@@ -66,8 +66,9 @@ function TeamCard({ team }) {
   );
 }
 
-export default function Regions() {
-  const [activeRegion, setActiveRegion] = useState('East');
+export default function Regions({ bracketData = defaultData }) {
+  const { getTeamsByRegion, REGIONS, UPSET_HISTORY } = bracketData;
+  const [activeRegion, setActiveRegion] = useState(REGIONS[0]);
   const [sortBy, setSortBy] = useState('seed');
 
   const teams = getTeamsByRegion(activeRegion);

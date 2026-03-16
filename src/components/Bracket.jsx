@@ -1,12 +1,12 @@
-import { useState } from 'react';
-import { getTeamsByRegion, REGIONS } from '../data/teams';
+import { useState, useEffect } from 'react';
+import * as defaultData from '../data/teams';
 
 const ROUND_NAMES = ['Round of 64', 'Round of 32', 'Sweet 16', 'Elite 8', 'Final Four', 'Championship'];
 
 // Seed matchups for R64: 1v16, 8v9, 5v12, 4v13, 6v11, 3v14, 7v10, 2v15
 const MATCHUP_ORDER = [0,7, 4,3, 5,2, 6,1]; // indices into sorted-by-seed array
 
-function buildInitialMatchups(region) {
+function buildInitialMatchups(region, getTeamsByRegion) {
   const teams = getTeamsByRegion(region); // sorted seed 1–16
   const pairs = [];
   for (let i = 0; i < MATCHUP_ORDER.length; i += 2) {
@@ -58,8 +58,8 @@ function Matchup({ top, bottom, winner, onPick }) {
   );
 }
 
-function RegionBracket({ region, picks, onPick }) {
-  const r64 = buildInitialMatchups(region);
+function RegionBracket({ region, picks, onPick, getTeamsByRegion }) {
+  const r64 = buildInitialMatchups(region, getTeamsByRegion);
 
   // Build rounds from picks
   const rounds = [r64]; // round 0 = R64 matchups
@@ -100,9 +100,16 @@ function RegionBracket({ region, picks, onPick }) {
   );
 }
 
-export default function Bracket() {
+export default function Bracket({ bracketData = defaultData }) {
+  const { getTeamsByRegion, REGIONS } = bracketData;
   const [picks, setPicks] = useState({});
-  const [activeRegion, setActiveRegion] = useState('East');
+  const [activeRegion, setActiveRegion] = useState(REGIONS[0]);
+
+  // Reset picks and active region when switching between men's/women's
+  useEffect(() => {
+    setPicks({});
+    setActiveRegion(REGIONS[0]);
+  }, [REGIONS[0]]);
 
   const handlePick = (region, round, matchupIdx, team, rounds) => {
     const newPicks = { ...picks };
@@ -163,7 +170,7 @@ export default function Bracket() {
       </div>
 
       <div className="bg-court-900 rounded-xl border border-court-700 p-4">
-        <RegionBracket region={activeRegion} picks={picks} onPick={handlePick} />
+        <RegionBracket region={activeRegion} picks={picks} onPick={handlePick} getTeamsByRegion={getTeamsByRegion} />
       </div>
 
       {/* Final Four + Championship */}
@@ -173,7 +180,7 @@ export default function Bracket() {
           <div className="flex flex-wrap gap-8 items-start justify-center">
             {/* FF Semi 1 */}
             <div>
-              <p className="text-xs text-slate-600 mb-2 text-center">East vs West winner</p>
+              <p className="text-xs text-slate-600 mb-2 text-center">{REGIONS[0]} vs {REGIONS[1]} winner</p>
               <Matchup
                 top={eliteEight[0]}
                 bottom={eliteEight[1]}
@@ -183,7 +190,7 @@ export default function Bracket() {
             </div>
             {/* FF Semi 2 */}
             <div>
-              <p className="text-xs text-slate-600 mb-2 text-center">South vs Midwest winner</p>
+              <p className="text-xs text-slate-600 mb-2 text-center">{REGIONS[2]} vs {REGIONS[3]} winner</p>
               <Matchup
                 top={eliteEight[2]}
                 bottom={eliteEight[3]}
