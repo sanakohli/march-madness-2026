@@ -25,7 +25,7 @@ Deep dive into each bracket region. Sort teams by seed, net rating, offensive ra
 Monte Carlo bracket simulator with optional Bayesian mode. See the simulation section below.
 
 ### Live Tracker
-Tracks real tournament results round by round as games are played. Hit **ESPN Sync** to pull completed and in-progress game results directly from ESPN's public API — winners are auto-filled into the bracket, live scores appear as an overlay on in-progress matchups. Results persist to localStorage per gender. The tracker scores model accuracy after each round (correct picks / games played), logs every upset with the model's pre-game win probability, and shows a "Still Alive" panel of teams not yet eliminated.
+Tracks real tournament results round by round as games are played. Hit **ESPN Sync** to pull completed and in-progress game results directly from ESPN's public API. Winners are auto-filled into the bracket and live scores appear as an overlay on in-progress matchups. Results persist to localStorage per gender. The tracker scores model accuracy after each round (correct picks / games played), logs every upset with the model's pre-game win probability, and shows a "Still Alive" panel of teams not yet eliminated.
 
 Both the Men's and Women's 2026 brackets are supported via the toggle in the header.
 
@@ -111,7 +111,7 @@ Likelihood: x_i | θ_i ~ N(θ_i, σ_obs²)
 Posterior:  θ_i | x_i ~ N(μ_post, σ_post²)
 ```
 
-The posterior mean shrinks each team's observed net rating toward the field mean — the stronger the prior (relative to observed variance), the more regression to the mean. This reflects genuine uncertainty about whether a team's season-long numbers will hold in a single-elimination game.
+The posterior mean shrinks each team's observed net rating toward the field mean. The stronger the prior relative to observed variance, the more regression to the mean. This reflects genuine uncertainty about whether a team's season-long numbers will hold in a single-elimination game.
 
 ### Win Probability
 
@@ -125,7 +125,7 @@ Where `Φ` is the standard normal CDF. This naturally encodes more upset potenti
 
 ### Backend
 
-The Bayesian simulation is powered by a Python (FastAPI) serverless function deployed on Vercel alongside the frontend (`api/index.py`). It uses NumPy for fully vectorized bracket simulation across all N runs simultaneously — no Python loop over simulations. The frontend falls back to the pure-JS Monte Carlo model if the API is unreachable.
+The Bayesian simulation is powered by a Python (FastAPI) serverless function deployed on Vercel alongside the frontend (`api/index.py`). It uses NumPy for fully vectorized bracket simulation across all N runs simultaneously, with no Python loop over simulations. The frontend falls back to the pure-JS Monte Carlo model if the API is unreachable.
 
 ---
 
