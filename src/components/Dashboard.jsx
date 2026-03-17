@@ -67,7 +67,7 @@ function UpsetAlert({ pick }) {
 
   return (
     <div className="bg-court-800 rounded-lg p-3 hover:brightness-110 transition-all"
-      style={{ borderLeft: `3px solid ${regionColor}`, border: `1px solid ${regionColor}25`, borderLeft: `3px solid ${regionColor}` }}>
+      style={{ border: `1px solid ${regionColor}25`, borderLeft: `3px solid ${regionColor}` }}>
       <div className="flex items-start justify-between gap-2 mb-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-xs font-mono bg-court-700 border border-court-600 px-1.5 py-0.5 rounded text-slate-300 shrink-0">#{team.seed}</span>

@@ -5,6 +5,7 @@ import Bracket from './components/Bracket';
 import Compare from './components/Compare';
 import Regions from './components/Regions';
 import Simulate from './components/Simulate';
+import Tracker from './components/Tracker';
 import * as menData from './data/teams';
 import * as womenData from './data/wteams';
 import './index.css';
@@ -38,6 +39,7 @@ export default function App() {
         {activeTab === 'compare'   && <Compare   bracketData={bracketData} />}
         {activeTab === 'regions'   && <Regions   bracketData={bracketData} />}
         {activeTab === 'simulate'  && <Simulate  bracketData={bracketData} />}
+        {activeTab === 'tracker'   && <Tracker   bracketData={bracketData} gender={gender} />}
       </main>
     </div>
   );

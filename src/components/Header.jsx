@@ -5,6 +5,7 @@ export default function Header({ activeTab, setActiveTab, gender, setGender }) {
     { id: 'compare',   label: 'Compare' },
     { id: 'regions',   label: 'Regions' },
     { id: 'simulate',  label: 'Simulate' },
+    { id: 'tracker',   label: 'Live Tracker' },
   ];
 
   return (
