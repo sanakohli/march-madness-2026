@@ -22,7 +22,10 @@ Head-to-head tool for any two teams in the field. Radar chart across six dimensi
 Deep dive into each bracket region. Sort teams by seed, net rating, offensive rating, defensive rating, or KenPom rank. Net efficiency bar chart by seed, team cards with upset history rates, and cross-region comparison panel.
 
 ### Simulate
-Monte Carlo bracket simulator. See the simulation section below.
+Monte Carlo bracket simulator with optional Bayesian mode. See the simulation section below.
+
+### Live Tracker
+Tracks real tournament results round by round as games are played. Hit **ESPN Sync** to pull completed and in-progress game results directly from ESPN's public API — winners are auto-filled into the bracket, live scores appear as an overlay on in-progress matchups. Results persist to localStorage per gender. The tracker scores model accuracy after each round (correct picks / games played), logs every upset with the model's pre-game win probability, and shows a "Still Alive" panel of teams not yet eliminated.
 
 Both the Men's and Women's 2026 brackets are supported via the toggle in the header.
 
@@ -94,6 +97,38 @@ The model uses team-level season averages. It does not account for injuries, sin
 
 ---
 
+## Bayesian Mode
+
+Both the Simulate and Compare tabs expose a **Bayesian** toggle that replaces the base logistic model with a conjugate Normal-Normal model.
+
+### Model
+
+Each team's true strength `θ_i` is treated as unknown and estimated from observed efficiency ratings with uncertainty:
+
+```
+Prior:    θ_i ~ N(μ_pop, σ_pop²)
+Likelihood: x_i | θ_i ~ N(θ_i, σ_obs²)
+Posterior:  θ_i | x_i ~ N(μ_post, σ_post²)
+```
+
+The posterior mean shrinks each team's observed net rating toward the field mean — the stronger the prior (relative to observed variance), the more regression to the mean. This reflects genuine uncertainty about whether a team's season-long numbers will hold in a single-elimination game.
+
+### Win Probability
+
+In each simulated game, both teams draw a strength sample from their posterior, and the win probability is computed from the difference:
+
+```
+P(A beats B) = Φ((μ_post_A − μ_post_B) / √(σ_post_A² + σ_post_B²))
+```
+
+Where `Φ` is the standard normal CDF. This naturally encodes more upset potential for closely-rated teams and reduces overconfidence in large favorites.
+
+### Backend
+
+The Bayesian simulation is powered by a Python (FastAPI) serverless function deployed on Vercel alongside the frontend (`api/index.py`). It uses NumPy for fully vectorized bracket simulation across all N runs simultaneously — no Python loop over simulations. The frontend falls back to the pure-JS Monte Carlo model if the API is unreachable.
+
+---
+
 ## Data
 
 - Seeds, records, and bracket placement from the official 2026 NCAA Selection Sunday announcement (March 15, 2026)
@@ -108,6 +143,9 @@ The model uses team-level season averages. It does not account for injuries, sin
 - **React + Vite 5**
 - **Tailwind CSS v3**
 - **Recharts** (radar charts, bar charts, horizontal bar charts)
+- **Python / FastAPI** (Bayesian simulation backend, Vercel serverless)
+- **NumPy** (vectorized bracket simulation)
+- **ESPN public API** (live tournament results)
 - **Vercel** (deployment)
 
 ---
