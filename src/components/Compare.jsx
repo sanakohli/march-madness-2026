@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import * as defaultData from '../data/teams';
+import { simulateMatchup } from '../utils/monteCarlo';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, ResponsiveContainer, Tooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend,
@@ -47,9 +48,28 @@ export default function Compare({ bracketData = defaultData }) {
     { name: 'Def Rtg',  [resolvedA.name]: resolvedA.defRtg,  [resolvedB.name]: resolvedB.defRtg },
   ];
 
+  const [simN, setSimN] = useState(10000);
+  const [simResult, setSimResult] = useState(null);
+  const [simRunning, setSimRunning] = useState(false);
+  const [simTeamIds, setSimTeamIds] = useState(null);
+
   const netA = (resolvedA.offRtg - resolvedA.defRtg).toFixed(1);
   const netB = (resolvedB.offRtg - resolvedB.defRtg).toFixed(1);
   const aFavored = parseFloat(netA) > parseFloat(netB);
+
+  // Invalidate sim result if either team changes
+  const currentPair = `${resolvedA.id}|${resolvedB.id}`;
+  const simIsStale = simResult && simTeamIds !== currentPair;
+
+  const handleSimulate = () => {
+    setSimRunning(true);
+    setTimeout(() => {
+      const result = simulateMatchup(resolvedA, resolvedB, simN);
+      setSimResult(result);
+      setSimTeamIds(currentPair);
+      setSimRunning(false);
+    }, 0);
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
@@ -95,6 +115,97 @@ export default function Compare({ bracketData = defaultData }) {
           Net efficiency advantage: <span className="text-white font-mono">+{Math.abs(parseFloat(netA) - parseFloat(netB)).toFixed(1)}</span> pts/100 possessions
         </p>
         <p className="text-xs text-slate-600 mt-2">Style matchup: <span className="text-slate-400">{resolvedA.style}</span> vs <span className="text-slate-400">{resolvedB.style}</span></p>
+      </div>
+
+      {/* Game Simulation */}
+      <div className="bg-court-900 rounded-xl border border-court-700 p-4">
+        <div className="flex flex-wrap items-center gap-4 mb-4">
+          <div>
+            <h2 className="text-white font-semibold">Simulate This Matchup</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Win probability using pace, 3P% variance, and A/TO consistency adjustments</p>
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="text-xs text-slate-500">Sims:</span>
+            {[1000, 5000, 10000].map(v => (
+              <button key={v} onClick={() => setSimN(v)}
+                className={`px-2.5 py-1 rounded text-xs font-mono transition-colors ${
+                  simN === v ? 'bg-hoop-500 text-white' : 'bg-court-800 border border-court-600 text-slate-400 hover:text-white'
+                }`}>
+                {v.toLocaleString()}
+              </button>
+            ))}
+            <button onClick={handleSimulate} disabled={simRunning}
+              className="px-4 py-1.5 bg-hoop-500 hover:bg-hoop-400 disabled:opacity-50 text-white font-semibold rounded-lg text-xs transition-colors ml-1">
+              {simRunning ? 'Running…' : simIsStale ? 'Re-run ↺' : 'Run'}
+            </button>
+          </div>
+        </div>
+
+        {simIsStale && (
+          <p className="text-xs text-yellow-400/70 mb-3">Teams changed — re-run to update.</p>
+        )}
+
+        {simResult && !simIsStale && (
+          <div className="space-y-4">
+            {/* Win probability bars */}
+            <div className="space-y-2">
+              {[
+                { team: resolvedA, prob: simResult.probA, color: 'bg-hoop-500', textColor: 'text-hoop-400' },
+                { team: resolvedB, prob: simResult.probB, color: 'bg-emerald-500', textColor: 'text-emerald-400' },
+              ].map(({ team, prob, color, textColor }) => (
+                <div key={team.id}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-slate-300 font-medium">{team.name}</span>
+                    <span className={`font-bold font-mono ${textColor}`}>{prob.toFixed(1)}%</span>
+                  </div>
+                  <div className="h-3 bg-court-700 rounded-full overflow-hidden">
+                    <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${prob}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Factor breakdown */}
+            <div className="grid grid-cols-3 gap-3 pt-2 border-t border-court-700">
+              <div className="bg-court-800 rounded-lg p-3 border border-court-700 text-center">
+                <p className="text-xs text-slate-500 mb-1">Avg Pace</p>
+                <p className="text-white font-bold text-sm">{simResult.factors.avgPace.toFixed(1)}</p>
+                <p className={`text-xs mt-0.5 ${simResult.factors.paceVarianceAdded ? 'text-yellow-400' : 'text-emerald-400'}`}>
+                  {simResult.factors.paceVarianceAdded ? 'slow game, higher variance' : 'fast game, chalk likely'}
+                </p>
+              </div>
+              <div className="bg-court-800 rounded-lg p-3 border border-court-700 text-center">
+                <p className="text-xs text-slate-500 mb-1">3P% Noise</p>
+                <p className="text-white font-bold text-sm">{simResult.factors.avg3Pct.toFixed(1)}% avg</p>
+                <p className={`text-xs mt-0.5 ${simResult.factors.threeNoiseStd > 1 ? 'text-yellow-400' : 'text-slate-500'}`}>
+                  {simResult.factors.threeNoiseStd > 1
+                    ? `±${simResult.factors.threeNoiseStd.toFixed(1)}pt noise`
+                    : 'low 3P variance'}
+                </p>
+              </div>
+              <div className="bg-court-800 rounded-lg p-3 border border-court-700 text-center">
+                <p className="text-xs text-slate-500 mb-1">A/TO Noise</p>
+                <p className="text-white font-bold text-sm">{simResult.factors.avgAstTov.toFixed(2)} avg</p>
+                <p className={`text-xs mt-0.5 ${simResult.factors.toNoiseStd > 0.5 ? 'text-yellow-400' : 'text-slate-500'}`}>
+                  {simResult.factors.toNoiseStd > 0.5
+                    ? `±${simResult.factors.toNoiseStd.toFixed(1)}pt noise`
+                    : 'disciplined, low noise'}
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600">
+              Base model (net rating only): <span className="text-slate-400">{simResult.baseProb.toFixed(1)}%</span> for {resolvedA.name} ·
+              Adjusted sim: <span className="text-slate-400">{simResult.probA.toFixed(1)}%</span>
+            </p>
+          </div>
+        )}
+
+        {!simResult && !simRunning && (
+          <p className="text-xs text-slate-600 text-center py-4">
+            Click <span className="text-hoop-400">Run</span> to simulate this matchup.
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

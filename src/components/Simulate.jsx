@@ -8,10 +8,31 @@ import {
 const ROUND_LABELS = { r64: 'R64', r32: 'R32', s16: 'S16', e8: 'E8', f4: 'F4', champ: 'Champ' };
 const CHAMP_COLORS = ['#f97316','#fb923c','#fdba74','#fcd34d','#86efac','#6ee7b7','#67e8f9','#93c5fd'];
 
-function ControlPanel({ n, setN, scaleFactor, setScaleFactor, onRun, isRunning }) {
+function ControlPanel({ n, setN, scaleFactor, setScaleFactor, onRun, isRunning, mode, setMode, apiError }) {
   return (
     <div className="bg-court-900 rounded-xl border border-court-700 p-4">
       <div className="flex flex-wrap items-end gap-6">
+
+        {/* Model toggle */}
+        <div>
+          <label className="text-xs text-slate-500 uppercase tracking-wider block mb-1">Model</label>
+          <div className="flex bg-court-800 border border-court-600 rounded-lg p-0.5">
+            {[['local', 'JS Local'], ['bayesian', 'Bayesian API']].map(([val, label]) => (
+              <button key={val} onClick={() => setMode(val)}
+                className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
+                  mode === val ? 'bg-hoop-500 text-white' : 'text-slate-400 hover:text-white'
+                }`}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {mode === 'bayesian' && (
+            <p className={`text-xs mt-1 ${apiError ? 'text-red-400' : 'text-emerald-400'}`}>
+              {apiError ? 'API offline — start the backend' : 'Connected to localhost:8000'}
+            </p>
+          )}
+        </div>
+
         <div>
           <label className="text-xs text-slate-500 uppercase tracking-wider block mb-1">Simulations</label>
           <div className="flex gap-2">
@@ -210,8 +231,9 @@ function UpsetAlerts({ results, upsetHistory }) {
   );
 }
 
-function ResultsTable({ results, sortKey, setSortKey, sortDir, setSortDir }) {
+function ResultsTable({ results, sortKey, setSortKey, sortDir, setSortDir, isBayesian }) {
   const rows = Object.values(results);
+  const showStrength = isBayesian && rows.some(r => r.strengthMean != null);
 
   const handleSort = (key) => {
     if (sortKey === key) {
@@ -227,6 +249,7 @@ function ResultsTable({ results, sortKey, setSortKey, sortDir, setSortDir }) {
     if (sortKey === 'seed') { av = a.team.seed; bv = b.team.seed; }
     else if (sortKey === 'name') { av = a.team.name; bv = b.team.name; }
     else if (sortKey === 'net') { av = a.team.offRtg - a.team.defRtg; bv = b.team.offRtg - b.team.defRtg; }
+    else if (sortKey === 'strength') { av = a.strengthMean ?? 0; bv = b.strengthMean ?? 0; }
     else { av = a.probs[sortKey]; bv = b.probs[sortKey]; }
 
     if (typeof av === 'string') return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
@@ -237,6 +260,7 @@ function ResultsTable({ results, sortKey, setSortKey, sortDir, setSortDir }) {
     { key: 'seed', label: 'Seed' },
     { key: 'name', label: 'Team' },
     { key: 'net', label: 'Net Rtg' },
+    ...(showStrength ? [{ key: 'strength', label: 'Bayes Strength' }] : []),
     { key: 'r64', label: 'R64' },
     { key: 'r32', label: 'R32' },
     { key: 's16', label: 'S16' },
@@ -283,6 +307,16 @@ function ResultsTable({ results, sortKey, setSortKey, sortDir, setSortDir }) {
                     <p className="text-slate-600">{r.team.region}</p>
                   </td>
                   <td className="px-3 py-2 text-slate-400 font-mono">+{net}</td>
+                  {showStrength && (
+                    <td className="px-3 py-2">
+                      {r.strengthMean != null ? (
+                        <span className="text-emerald-400 font-mono text-xs">
+                          {r.strengthMean > 0 ? '+' : ''}{r.strengthMean.toFixed(1)}
+                          <span className="text-slate-600 ml-1">±{r.strengthStd.toFixed(1)}</span>
+                        </span>
+                      ) : <span className="text-slate-600">—</span>}
+                    </td>
+                  )}
                   {['r64','r32','s16','e8','f4','champ'].map(rk => (
                     <td key={rk} className={`px-3 py-2 font-mono ${pctColor(r.probs[rk])}`}>
                       {r.probs[rk] >= 0.1 ? r.probs[rk].toFixed(1) + '%' : '<0.1%'}
@@ -307,15 +341,59 @@ export default function Simulate({ bracketData = defaultData }) {
   const [showExplanation, setShowExplanation] = useState(false);
   const [sortKey, setSortKey] = useState('champ');
   const [sortDir, setSortDir] = useState('desc');
+  const [mode, setMode] = useState('local');
+  const [apiError, setApiError] = useState(false);
+  const [isBayesian, setIsBayesian] = useState(false);
+
+  const gender = bracketData === defaultData ? 'men' : 'women';
 
   const handleRun = () => {
     setIsRunning(true);
-    // setTimeout(0) lets React re-render the "Simulating…" state before blocking
-    setTimeout(() => {
-      const sim = runSimulation(bracketData, n, scaleFactor);
-      setResults(sim.results);
-      setIsRunning(false);
-    }, 0);
+    setApiError(false);
+
+    if (mode === 'bayesian') {
+      fetch('/api/simulate-bracket', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ gender, n, scale_factor: scaleFactor }),
+      })
+        .then(r => {
+          if (!r.ok) throw new Error('API error');
+          return r.json();
+        })
+        .then(data => {
+          // Convert API response shape to match local results shape
+          const converted = {};
+          for (const item of data.results) {
+            converted[item.id] = {
+              team: bracketData.TEAMS.find(t => t.id === item.id) || { id: item.id, name: item.name, seed: item.seed, region: item.region },
+              probs: item.probs,
+              strengthMean: item.strength_mean,
+              strengthStd: item.strength_std,
+            };
+          }
+          setResults(converted);
+          setIsBayesian(true);
+          setIsRunning(false);
+        })
+        .catch(() => {
+          setApiError(true);
+          setIsRunning(false);
+        });
+    } else {
+      // setTimeout(0) lets React re-render before the synchronous simulation blocks
+      setTimeout(() => {
+        const sim = runSimulation(bracketData, n, scaleFactor);
+        // Add stub bayesian fields so table renders uniformly
+        const extended = {};
+        for (const [id, r] of Object.entries(sim.results)) {
+          extended[id] = { ...r, strengthMean: null, strengthStd: null };
+        }
+        setResults(extended);
+        setIsBayesian(false);
+        setIsRunning(false);
+      }, 0);
+    }
   };
 
   return (
@@ -324,6 +402,7 @@ export default function Simulate({ bracketData = defaultData }) {
         n={n} setN={setN}
         scaleFactor={scaleFactor} setScaleFactor={setScaleFactor}
         onRun={handleRun} isRunning={isRunning}
+        mode={mode} setMode={setMode} apiError={apiError}
       />
 
       <ExplanationPanel show={showExplanation} toggle={() => setShowExplanation(s => !s)} />
@@ -347,6 +426,11 @@ export default function Simulate({ bracketData = defaultData }) {
             <span>Ran <span className="text-white font-mono">{n.toLocaleString()}</span> simulations</span>
             <span>·</span>
             <span>Scale factor <span className="text-white font-mono">{scaleFactor}</span></span>
+            <span>·</span>
+            <span className={isBayesian ? 'text-emerald-400' : 'text-slate-400'}>
+              {isBayesian ? 'Bayesian API' : 'JS Local'}
+            </span>
+            {isBayesian && <span className="text-slate-600">schedule-adjusted posteriors</span>}
             <button onClick={handleRun} className="ml-auto text-hoop-400 hover:text-hoop-300 transition-colors">
               Re-run ↺
             </button>
@@ -360,6 +444,7 @@ export default function Simulate({ bracketData = defaultData }) {
             results={results}
             sortKey={sortKey} setSortKey={setSortKey}
             sortDir={sortDir} setSortDir={setSortDir}
+            isBayesian={isBayesian}
           />
         </>
       )}

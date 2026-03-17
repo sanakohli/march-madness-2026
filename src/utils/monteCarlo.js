@@ -80,6 +80,43 @@ function simulateFinalFour(regionChamps, counts, scaleFactor) {
   return champion;
 }
 
+export function simulateMatchup(teamA, teamB, n = 10000, scaleFactor = 10) {
+  const netA = teamA.offRtg - teamA.defRtg;
+  const netB = teamB.offRtg - teamB.defRtg;
+
+  // Base probability (no noise, no pace adj) for comparison
+  const baseProb = 1 / (1 + Math.exp(-(netA - netB) / scaleFactor));
+
+  // Factor details
+  const avgPace = (teamA.pace + teamB.pace) / 2;
+  const effectiveScale = scaleFactor * (BASELINE_PACE / avgPace);
+  const avg3Pct = (teamA.fg3Pct + teamB.fg3Pct) / 2;
+  const threeNoiseStd = Math.max(0, avg3Pct - 33) * 0.35;
+  const avgAstTov = (teamA.astTov + teamB.astTov) / 2;
+  const toNoiseStd = Math.max(0, (1.4 - avgAstTov) * 2.5);
+
+  // Simulate n games
+  let winsA = 0;
+  for (let i = 0; i < n; i++) {
+    if (Math.random() < winProb(teamA, teamB, scaleFactor)) winsA++;
+  }
+
+  return {
+    probA: (winsA / n) * 100,
+    probB: ((n - winsA) / n) * 100,
+    baseProb: baseProb * 100,
+    factors: {
+      avgPace,
+      effectiveScale,
+      paceVarianceAdded: effectiveScale > scaleFactor,
+      avg3Pct,
+      threeNoiseStd,
+      avgAstTov,
+      toNoiseStd,
+    },
+  };
+}
+
 export function runSimulation(bracketData, n = 10000, scaleFactor = 10) {
   const { TEAMS, REGIONS, getTeamsByRegion } = bracketData;
 
