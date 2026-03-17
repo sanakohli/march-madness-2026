@@ -1,11 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800&family=Nunito+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 * { box-sizing: border-box; }
-body { margin: 0; background: #0a0c10; color: #e2e8f0; font-family: system-ui, sans-serif; }
+
+body {
+  margin: 0;
+  background: #0a0c10;
+  color: #e2e8f0;
+  font-family: 'Nunito Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
 #root { min-height: 100vh; }
 
+/* Grain texture overlay — removes plastic feel */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.028;
+  mix-blend-mode: screen;
+}
+
+/* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #111318; }
 ::-webkit-scrollbar-thumb { background: #2e333d; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #3d4452; }
+
+/* Sport font utility */
+.font-sport {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+/* Hoop glow — used on primary CTA buttons and active states */
+.glow-hoop {
+  box-shadow: 0 0 20px rgba(249, 115, 22, 0.3), 0 0 6px rgba(249, 115, 22, 0.2);
+}
+
+/* Subtle number shimmer on stat values */
+@keyframes statReveal {
+  from { opacity: 0; transform: translateY(4px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.stat-reveal {
+  animation: statReveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}

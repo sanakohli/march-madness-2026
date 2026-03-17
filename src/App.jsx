@@ -16,14 +16,23 @@ export default function App() {
   const bracketData = gender === 'men' ? menData : womenData;
 
   return (
-    <div className="min-h-screen bg-court-950">
+    <div className="min-h-screen bg-court-950 relative">
+      {/* Arena ceiling glow — barely visible orange ambient at top */}
+      <div
+        className="fixed top-0 left-0 right-0 pointer-events-none animate-glow-pulse"
+        style={{
+          height: '320px',
+          background: 'radial-gradient(ellipse 70% 100% at 50% -20%, rgba(249,115,22,0.055) 0%, transparent 70%)',
+          zIndex: 0,
+        }}
+      />
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         gender={gender}
         setGender={setGender}
       />
-      <main className="pb-12">
+      <main className="pb-12 relative z-10">
         {activeTab === 'dashboard' && <Dashboard bracketData={bracketData} />}
         {activeTab === 'bracket'   && <Bracket   bracketData={bracketData} />}
         {activeTab === 'compare'   && <Compare   bracketData={bracketData} />}

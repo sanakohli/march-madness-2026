@@ -144,23 +144,39 @@ export default function Compare({ bracketData = defaultData }) {
         ))}
       </div>
 
-      {/* Verdict */}
-      <div className={`rounded-xl border p-4 text-center ${aFavored ? 'bg-hoop-500/10 border-hoop-500/40' : 'bg-emerald-500/10 border-emerald-500/40'}`}>
-        <p className="text-slate-400 text-sm">Based on net efficiency, the edge goes to</p>
-        <p className={`text-2xl font-bold mt-1 ${aFavored ? 'text-hoop-400' : 'text-emerald-400'}`}>
-          {aFavored ? resolvedA.name : resolvedB.name}
-        </p>
-        <p className="text-slate-500 text-sm mt-1">
-          Net efficiency advantage: <span className="text-white font-mono">+{Math.abs(parseFloat(netA) - parseFloat(netB)).toFixed(1)}</span> pts/100 possessions
-        </p>
-        <p className="text-xs text-slate-600 mt-2">Style matchup: <span className="text-slate-400">{resolvedA.style}</span> vs <span className="text-slate-400">{resolvedB.style}</span></p>
+      {/* Verdict — broadcast graphic treatment */}
+      <div className={`rounded-xl border relative overflow-hidden ${aFavored ? 'bg-hoop-500/8 border-hoop-500/30' : 'bg-emerald-500/8 border-emerald-500/30'}`}
+        style={{ background: aFavored ? 'linear-gradient(135deg, rgba(249,115,22,0.06) 0%, transparent 60%)' : 'linear-gradient(135deg, rgba(34,197,94,0.06) 0%, transparent 60%)' }}>
+        <div className={`absolute top-0 left-0 right-0 h-px ${aFavored ? 'bg-gradient-to-r from-transparent via-hoop-500/60 to-transparent' : 'bg-gradient-to-r from-transparent via-emerald-500/60 to-transparent'}`} />
+        <div className="px-8 py-6 text-center">
+          <p className="text-xs text-slate-500 uppercase font-mono mb-4" style={{ letterSpacing: '0.18em', fontSize: '10px' }}>Efficiency Edge</p>
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <span className={`font-sport text-5xl uppercase leading-none ${aFavored ? 'text-hoop-400' : 'text-emerald-400'}`}
+              style={{ letterSpacing: '0.04em', textShadow: aFavored ? '0 0 40px rgba(249,115,22,0.2)' : '0 0 40px rgba(34,197,94,0.2)' }}>
+              {aFavored ? resolvedA.name : resolvedB.name}
+            </span>
+          </div>
+          <div className="flex items-center justify-center gap-3">
+            <span className="font-mono text-xs bg-court-800 border border-court-600 px-2 py-0.5 rounded text-slate-400">
+              #{aFavored ? resolvedA.seed : resolvedB.seed}
+            </span>
+            <span className="text-slate-600 text-xs">leads by</span>
+            <span className={`font-sport text-2xl ${aFavored ? 'text-hoop-400' : 'text-emerald-400'}`}>
+              +{Math.abs(parseFloat(netA) - parseFloat(netB)).toFixed(1)}
+            </span>
+            <span className="text-slate-600 text-xs">pts / 100 poss.</span>
+          </div>
+          <p className="text-xs text-slate-600 mt-3 font-mono" style={{ letterSpacing: '0.08em' }}>
+            {resolvedA.style.toUpperCase()} vs {resolvedB.style.toUpperCase()}
+          </p>
+        </div>
       </div>
 
       {/* Game Simulation */}
       <div className="bg-court-900 rounded-xl border border-court-700 p-4">
         <div className="flex flex-wrap items-center gap-4 mb-4">
           <div>
-            <h2 className="text-white font-semibold">Simulate This Matchup</h2>
+            <h2 className="font-sport text-white text-lg uppercase" style={{ letterSpacing: '0.06em' }}>Simulate This Matchup</h2>
             <p className="text-xs text-slate-500 mt-0.5">Win probability using pace, 3P% variance, and A/TO consistency adjustments</p>
           </div>
           <div className="flex items-center gap-3 ml-auto flex-wrap">
@@ -201,25 +217,25 @@ export default function Compare({ bracketData = defaultData }) {
         {simResult && !simIsStale && (
           <div className="space-y-4">
             {/* Win probability bars */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               {[
                 { team: resolvedA, prob: simResult.probA, strength: simResult.strengthA, color: 'bg-hoop-500', textColor: 'text-hoop-400' },
                 { team: resolvedB, prob: simResult.probB, strength: simResult.strengthB, color: 'bg-emerald-500', textColor: 'text-emerald-400' },
               ].map(({ team, prob, strength, color, textColor }) => (
                 <div key={team.id}>
-                  <div className="flex justify-between text-xs mb-1">
-                    <span className="text-slate-300 font-medium">
+                  <div className="flex justify-between items-baseline mb-1.5">
+                    <span className="text-sm font-semibold text-white">
                       {team.name}
                       {strength && (
-                        <span className="text-slate-500 ml-2 font-normal">
-                          strength {strength.mean > 0 ? '+' : ''}{strength.mean.toFixed(1)} <span className="text-slate-600">±{strength.std.toFixed(1)}</span>
+                        <span className="text-slate-500 ml-2 text-xs font-normal">
+                          {strength.mean > 0 ? '+' : ''}{strength.mean.toFixed(1)} <span className="text-slate-600">±{strength.std.toFixed(1)}</span>
                         </span>
                       )}
                     </span>
-                    <span className={`font-bold font-mono ${textColor}`}>{prob.toFixed(1)}%</span>
+                    <span className={`text-xl font-bold font-mono ${textColor}`}>{prob.toFixed(1)}%</span>
                   </div>
-                  <div className="h-3 bg-court-700 rounded-full overflow-hidden">
-                    <div className={`h-full ${color} rounded-full transition-all duration-500`} style={{ width: `${prob}%` }} />
+                  <div className="h-4 bg-court-700 rounded-full overflow-hidden">
+                    <div className={`h-full ${color} rounded-full transition-all duration-700`} style={{ width: `${prob}%` }} />
                   </div>
                 </div>
               ))}
@@ -278,7 +294,8 @@ export default function Compare({ bracketData = defaultData }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Radar */}
         <div className="bg-court-900 rounded-xl border border-court-700 p-4">
-          <h2 className="text-white font-semibold mb-4">Skill Comparison (Radar)</h2>
+          <h2 className="font-sport text-white text-lg uppercase mb-0.5" style={{ letterSpacing: '0.06em' }}>Skill Comparison</h2>
+          <p className="text-xs text-slate-500 mb-4">Radar across 7 dimensions</p>
           <ResponsiveContainer width="100%" height={280}>
             <RadarChart data={radarData}>
               <PolarGrid stroke="#2e333d" />
@@ -293,7 +310,8 @@ export default function Compare({ bracketData = defaultData }) {
 
         {/* Bar chart */}
         <div className="bg-court-900 rounded-xl border border-court-700 p-4">
-          <h2 className="text-white font-semibold mb-4">Key Stats Bar Chart</h2>
+          <h2 className="font-sport text-white text-lg uppercase mb-0.5" style={{ letterSpacing: '0.06em' }}>Key Stats</h2>
+          <p className="text-xs text-slate-500 mb-4">PPG, Opp PPG, Off Rtg, Def Rtg</p>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={barData} barCategoryGap="30%">
               <CartesianGrid strokeDasharray="3 3" stroke="#2e333d" vertical={false} />
@@ -311,9 +329,9 @@ export default function Compare({ bracketData = defaultData }) {
       {/* Stat-by-stat table */}
       <div className="bg-court-900 rounded-xl border border-court-700 p-4">
         <div className="flex items-center gap-2 mb-4">
-          <span className="text-hoop-400 font-bold flex-1 text-center">{resolvedA.name}</span>
-          <span className="text-slate-600 text-xs w-32 text-center">STAT</span>
-          <span className="text-emerald-400 font-bold flex-1 text-center">{resolvedB.name}</span>
+          <span className="font-sport text-hoop-400 text-base uppercase flex-1 text-center" style={{ letterSpacing: '0.04em' }}>{resolvedA.name}</span>
+          <span className="text-slate-600 text-xs w-32 text-center font-mono uppercase tracking-widest">vs</span>
+          <span className="font-sport text-emerald-400 text-base uppercase flex-1 text-center" style={{ letterSpacing: '0.04em' }}>{resolvedB.name}</span>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
           <div>

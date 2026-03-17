@@ -5,8 +5,9 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
 
+import { PALETTE } from '../utils/colors';
 const ROUND_LABELS = { r64: 'R64', r32: 'R32', s16: 'S16', e8: 'E8', f4: 'F4', champ: 'Champ' };
-const CHAMP_COLORS = ['#f97316','#fb923c','#fdba74','#fcd34d','#86efac','#6ee7b7','#67e8f9','#93c5fd'];
+const CHAMP_COLORS = ['#f97316','#3b82f6','#22c55e','#a855f7','#fb923c','#60a5fa','#4ade80','#c084fc'];
 
 function ControlPanel({ n, setN, scaleFactor, setScaleFactor, onRun, isRunning, mode, setMode, apiError }) {
   return (
@@ -74,7 +75,7 @@ function ExplanationPanel({ show, toggle }) {
   return (
     <div className="bg-court-900 rounded-xl border border-court-700">
       <button onClick={toggle} className="w-full flex items-center justify-between p-4 text-left">
-        <span className="text-white font-semibold text-sm">How does this work?</span>
+        <span className="font-sport text-white text-base uppercase" style={{ letterSpacing: '0.06em' }}>How does this work?</span>
         <span className="text-slate-500 text-xs">{show ? '▲ collapse' : '▼ expand'}</span>
       </button>
       {show && (
@@ -161,7 +162,7 @@ function ChampionshipChart({ results }) {
 
   return (
     <div className="bg-court-900 rounded-xl border border-court-700 p-4">
-      <h2 className="text-white font-semibold mb-1">Championship Probability</h2>
+      <h2 className="font-sport text-white text-lg uppercase mb-0.5" style={{ letterSpacing: '0.06em' }}>Championship Probability</h2>
       <p className="text-xs text-slate-500 mb-4">Top 8 teams — % of simulations won</p>
       <ResponsiveContainer width="100%" height={220}>
         <BarChart data={data} layout="vertical" barSize={18}>
@@ -205,13 +206,16 @@ function UpsetAlerts({ results, upsetHistory }) {
 
   return (
     <div className="bg-court-900 rounded-xl border border-hoop-500/30 p-4">
-      <h2 className="text-white font-semibold mb-1">Model Upset Picks</h2>
+      <h2 className="font-sport text-white text-lg uppercase mb-0.5" style={{ letterSpacing: '0.06em' }}>Model Upset Picks</h2>
       <p className="text-xs text-slate-500 mb-3">
         Teams the model gives a higher R64 win % than historical base rates suggest
       </p>
       <div className="space-y-2">
-        {alerts.map(r => (
-          <div key={r.team.id} className="flex items-center gap-3 bg-court-800 border border-court-600 rounded-lg p-3">
+        {alerts.map((r, i) => {
+          const accentColor = PALETTE[i % PALETTE.length];
+          return (
+          <div key={r.team.id} className="flex items-center gap-3 bg-court-800 rounded-lg p-3"
+            style={{ border: `1px solid ${accentColor}25` }}>
             <span className="text-xs font-mono bg-court-700 border border-court-600 px-1.5 py-0.5 rounded text-slate-300">
               #{r.team.seed}
             </span>
@@ -220,12 +224,13 @@ function UpsetAlerts({ results, upsetHistory }) {
               <p className="text-slate-500 text-xs">{r.team.region} · {r.team.conf}</p>
             </div>
             <div className="text-right text-xs">
-              <p className="text-hoop-400 font-bold">{r.simUpsetPct.toFixed(1)}% model</p>
+              <p className="font-bold font-mono" style={{ color: accentColor }}>{r.simUpsetPct.toFixed(1)}% model</p>
               <p className="text-slate-500">{r.histUpsetPct.toFixed(0)}% hist. base</p>
             </div>
-            <span className="text-emerald-400 font-bold text-sm">+{r.diff.toFixed(1)}pp</span>
+            <span className="font-sport text-sm" style={{ color: accentColor }}>+{r.diff.toFixed(1)}pp</span>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -280,7 +285,7 @@ function ResultsTable({ results, sortKey, setSortKey, sortDir, setSortDir, isBay
   return (
     <div className="bg-court-900 rounded-xl border border-court-700 overflow-hidden">
       <div className="p-4 border-b border-court-700">
-        <h2 className="text-white font-semibold">Full Results Table</h2>
+        <h2 className="font-sport text-white text-lg uppercase" style={{ letterSpacing: '0.06em' }}>Full Results Table</h2>
         <p className="text-xs text-slate-500 mt-0.5">% of simulations each team advanced to each round · click headers to sort</p>
       </div>
       <div className="overflow-x-auto">
@@ -408,15 +413,29 @@ export default function Simulate({ bracketData = defaultData }) {
       <ExplanationPanel show={showExplanation} toggle={() => setShowExplanation(s => !s)} />
 
       {!results && !isRunning && (
-        <div className="text-center py-16 text-slate-600">
-          <p className="text-4xl mb-3">🎲</p>
-          <p className="text-sm">Configure parameters above and click <span className="text-hoop-400">Run Simulation</span> to start.</p>
+        <div className="bg-court-900 border border-court-700 rounded-xl py-14 px-6 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-court-800 border border-court-600 mb-4">
+            <span className="text-hoop-500 text-xl">▶</span>
+          </div>
+          <p className="font-sport text-white text-xl uppercase mb-1" style={{ letterSpacing: '0.06em' }}>Ready to Simulate</p>
+          <p className="text-sm text-slate-500">Set your parameters above — simulations, scale factor, model — then hit <span className="text-hoop-400 font-medium">Run Simulation</span>.</p>
+          <div className="flex items-center justify-center gap-6 mt-6 text-xs text-slate-600">
+            <span>Pace adjustment</span>
+            <span className="text-court-600">·</span>
+            <span>3P% variance</span>
+            <span className="text-court-600">·</span>
+            <span>A/TO noise</span>
+          </div>
         </div>
       )}
 
       {isRunning && (
-        <div className="text-center py-16 text-slate-500">
-          <p className="text-sm">Running {n.toLocaleString()} simulations…</p>
+        <div className="bg-court-900 border border-court-700 rounded-xl py-14 px-6 text-center">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-hoop-500/10 border border-hoop-500/30 mb-4">
+            <span className="text-hoop-400 text-xl animate-spin inline-block">◌</span>
+          </div>
+          <p className="font-sport text-white text-xl uppercase mb-1" style={{ letterSpacing: '0.06em' }}>Simulating…</p>
+          <p className="text-sm text-slate-500">Running <span className="text-white font-mono">{n.toLocaleString()}</span> bracket simulations</p>
         </div>
       )}
 

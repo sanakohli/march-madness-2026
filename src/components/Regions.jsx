@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import * as defaultData from '../data/teams';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { PALETTE, regionColor } from '../utils/colors';
 
 const RISK_COLOR = { Low: '#22c55e', Medium: '#eab308', High: '#f97316' };
 const STYLE_BADGE = {
@@ -70,6 +71,7 @@ export default function Regions({ bracketData = defaultData }) {
   const { getTeamsByRegion, REGIONS, UPSET_HISTORY } = bracketData;
   const [activeRegion, setActiveRegion] = useState(REGIONS[0]);
   const [sortBy, setSortBy] = useState('seed');
+  const activeColor = PALETTE[REGIONS.indexOf(activeRegion)] || PALETTE[0];
 
   const teams = getTeamsByRegion(activeRegion);
   const sorted = [...teams].sort((a, b) => {
@@ -104,14 +106,24 @@ export default function Regions({ bracketData = defaultData }) {
       {/* Region switcher + sort */}
       <div className="flex flex-wrap gap-3 items-center">
         <div className="flex gap-2">
-          {REGIONS.map(r => (
-            <button key={r} onClick={() => setActiveRegion(r)}
-              className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
-                activeRegion === r ? 'bg-hoop-500 text-white' : 'bg-court-800 text-slate-400 hover:text-white border border-court-600'
-              }`}>
-              {r}
-            </button>
-          ))}
+          {REGIONS.map((r, rIdx) => {
+            const color = PALETTE[rIdx];
+            const isActive = activeRegion === r;
+            return (
+              <button key={r} onClick={() => setActiveRegion(r)}
+                className={`px-4 py-1.5 rounded font-sport uppercase text-xs transition-all ${
+                  isActive ? 'text-white' : 'bg-court-800 text-slate-400 hover:text-white border border-court-600'
+                }`}
+                style={isActive ? {
+                  background: `${color}22`,
+                  border: `1px solid ${color}60`,
+                  color,
+                  letterSpacing: '0.08em',
+                } : { letterSpacing: '0.08em' }}>
+                {r}
+              </button>
+            );
+          })}
         </div>
         <div className="ml-auto flex items-center gap-2">
           <span className="text-xs text-slate-500">Sort:</span>
@@ -128,7 +140,7 @@ export default function Regions({ bracketData = defaultData }) {
 
       {/* Net efficiency bar chart */}
       <div className="bg-court-900 rounded-xl border border-court-700 p-4">
-        <h2 className="text-white font-semibold mb-1">{activeRegion} — Net Efficiency by Seed</h2>
+        <h2 className="font-sport text-white text-lg uppercase mb-0.5" style={{ letterSpacing: '0.06em' }}>{activeRegion} — Net Efficiency by Seed</h2>
         <p className="text-xs text-slate-500 mb-4">Off Rating minus Def Rating per 100 possessions</p>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={barData} barSize={24}>
@@ -140,9 +152,10 @@ export default function Regions({ bracketData = defaultData }) {
               formatter={(val) => [`+${val}`, 'Net Rtg']}
             />
             <Bar dataKey="net" radius={[3,3,0,0]}>
-              {barData.map((entry) => (
-                <Cell key={entry.name} fill={entry.net > 18 ? '#f97316' : entry.net > 12 ? '#fb923c' : entry.net > 6 ? '#64748b' : '#374151'} />
-              ))}
+              {barData.map((entry) => {
+                const alpha = entry.net > 18 ? 'ff' : entry.net > 12 ? 'cc' : entry.net > 6 ? '66' : '33';
+                return <Cell key={entry.name} fill={`${activeColor}${alpha}`} />;
+              })}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
@@ -155,18 +168,23 @@ export default function Regions({ bracketData = defaultData }) {
 
       {/* Cross-region comparison */}
       <div className="bg-court-900 rounded-xl border border-court-700 p-4">
-        <h2 className="text-white font-semibold mb-4">Cross-Region Overview</h2>
+        <h2 className="font-sport text-white text-lg uppercase mb-4" style={{ letterSpacing: '0.06em' }}>Cross-Region Overview</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {regionStats.map((r, i) => (
-            <div key={r.region} className={`rounded-lg p-3 border ${activeRegion === r.region ? 'bg-hoop-500/10 border-hoop-500/40' : 'bg-court-800 border-court-600'}`}>
-              <p className={`text-sm font-bold mb-2 ${activeRegion === r.region ? 'text-hoop-400' : 'text-slate-300'}`}>{r.region}</p>
+          {regionStats.map((r, i) => {
+            const rColor = PALETTE[REGIONS.indexOf(r.region)] || PALETTE[0];
+            const isActive = activeRegion === r.region;
+            return (
+            <div key={r.region} className="rounded-lg p-3 border bg-court-800"
+              style={{ borderColor: isActive ? `${rColor}50` : '#2e333d', background: isActive ? `${rColor}10` : '' }}>
+              <p className="font-sport text-sm uppercase mb-2" style={{ color: rColor, letterSpacing: '0.06em' }}>{r.region}</p>
               <div className="space-y-1 text-xs">
                 <div className="flex justify-between"><span className="text-slate-500">Avg Net</span><span className="text-white font-mono">+{r.avgNet}</span></div>
                 <div className="flex justify-between"><span className="text-slate-500">1+2 seeds net</span><span className="text-white font-mono">+{r.top2Net}</span></div>
                 <div className="flex justify-between"><span className="text-slate-500">Deep teams</span><span className="text-white font-mono">{r.deepTeams}/16</span></div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

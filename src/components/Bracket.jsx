@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as defaultData from '../data/teams';
+import { PALETTE } from '../utils/colors';
 
 const ROUND_NAMES = ['Round of 64', 'Round of 32', 'Sweet 16', 'Elite 8', 'Final Four', 'Championship'];
 
@@ -79,7 +80,7 @@ function RegionBracket({ region, picks, onPick, getTeamsByRegion }) {
 
   return (
     <div>
-      <h3 className="text-hoop-400 font-bold text-sm uppercase tracking-wider mb-3">{region}</h3>
+      <h3 className="font-sport text-hoop-400 text-base uppercase mb-3" style={{ letterSpacing: '0.08em' }}>{region}</h3>
       <div className="flex gap-2 overflow-x-auto pb-2">
         {rounds.map((matchups, rIdx) => (
           <div key={rIdx} className="flex flex-col justify-around gap-2 shrink-0" style={{ minWidth: 160 }}>
@@ -158,15 +159,25 @@ export default function Bracket({ bracketData = defaultData }) {
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
       {/* Region tabs */}
       <div className="flex gap-2 flex-wrap">
-        {REGIONS.map(r => (
-          <button key={r} onClick={() => setActiveRegion(r)}
-            className={`px-4 py-1.5 rounded text-sm font-medium transition-colors ${
-              activeRegion === r ? 'bg-hoop-500 text-white' : 'bg-court-800 text-slate-400 hover:text-white border border-court-600'
-            }`}>
-            {r}
-            {picks[`${r}-3-0`] && <span className="ml-2 text-xs opacity-70">→ {picks[`${r}-3-0`].name}</span>}
-          </button>
-        ))}
+        {REGIONS.map((r, rIdx) => {
+          const color = PALETTE[rIdx];
+          const isActive = activeRegion === r;
+          return (
+            <button key={r} onClick={() => setActiveRegion(r)}
+              className={`px-4 py-1.5 rounded font-sport uppercase text-xs transition-all ${
+                isActive ? '' : 'bg-court-800 text-slate-400 hover:text-white border border-court-600'
+              }`}
+              style={isActive ? {
+                background: `${color}20`,
+                border: `1px solid ${color}55`,
+                color,
+                letterSpacing: '0.08em',
+              } : { letterSpacing: '0.08em' }}>
+              {r}
+              {picks[`${r}-3-0`] && <span className="ml-2 opacity-60" style={{ fontSize: '10px' }}>→ {picks[`${r}-3-0`].name}</span>}
+            </button>
+          );
+        })}
       </div>
 
       <div className="bg-court-900 rounded-xl border border-court-700 p-4">
@@ -176,7 +187,7 @@ export default function Bracket({ bracketData = defaultData }) {
       {/* Final Four + Championship */}
       {eliteEight.length > 0 && (
         <div className="bg-court-900 rounded-xl border border-hoop-500/30 p-4">
-          <h2 className="text-hoop-400 font-bold text-sm uppercase tracking-wider mb-4">Final Four & Championship</h2>
+          <h2 className="font-sport text-hoop-400 text-lg uppercase mb-4" style={{ letterSpacing: '0.08em' }}>Final Four & Championship</h2>
           <div className="flex flex-wrap gap-8 items-start justify-center">
             {/* FF Semi 1 */}
             <div>
@@ -223,7 +234,7 @@ export default function Bracket({ bracketData = defaultData }) {
 
       {/* Picks summary */}
       <div className="bg-court-900 rounded-xl border border-court-700 p-4">
-        <h2 className="text-white font-semibold mb-3">Your Picks Summary</h2>
+        <h2 className="font-sport text-white text-lg uppercase mb-3" style={{ letterSpacing: '0.06em' }}>Your Picks</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {REGIONS.map(r => {
             const e8 = picks[`${r}-3-0`];
