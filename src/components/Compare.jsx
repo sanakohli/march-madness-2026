@@ -52,23 +52,62 @@ export default function Compare({ bracketData = defaultData }) {
   const [simResult, setSimResult] = useState(null);
   const [simRunning, setSimRunning] = useState(false);
   const [simTeamIds, setSimTeamIds] = useState(null);
+  const [simMode, setSimMode] = useState('local');
+  const [apiError, setApiError] = useState(false);
 
   const netA = (resolvedA.offRtg - resolvedA.defRtg).toFixed(1);
   const netB = (resolvedB.offRtg - resolvedB.defRtg).toFixed(1);
   const aFavored = parseFloat(netA) > parseFloat(netB);
+  const gender = bracketData === defaultData ? 'men' : 'women';
 
-  // Invalidate sim result if either team changes
-  const currentPair = `${resolvedA.id}|${resolvedB.id}`;
+  const currentPair = `${resolvedA.id}|${resolvedB.id}|${simMode}`;
   const simIsStale = simResult && simTeamIds !== currentPair;
 
   const handleSimulate = () => {
     setSimRunning(true);
-    setTimeout(() => {
-      const result = simulateMatchup(resolvedA, resolvedB, simN);
-      setSimResult(result);
-      setSimTeamIds(currentPair);
-      setSimRunning(false);
-    }, 0);
+    setApiError(false);
+
+    if (simMode === 'bayesian') {
+      fetch('/api/simulate-matchup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          gender,
+          team_a_id: resolvedA.id,
+          team_b_id: resolvedB.id,
+          n: simN,
+        }),
+      })
+        .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+        .then(data => {
+          setSimResult({
+            probA: data.prob_a,
+            probB: data.prob_b,
+            baseProb: data.base_prob_a,
+            strengthA: data.strength_a,
+            strengthB: data.strength_b,
+            isBayesian: true,
+            factors: {
+              avgPace: data.factors.avg_pace,
+              paceVarianceAdded: data.factors.effective_scale > simN,
+              avg3Pct: data.factors.avg_3pct,
+              threeNoiseStd: data.factors.three_noise_std,
+              avgAstTov: data.factors.avg_astov,
+              toNoiseStd: data.factors.to_noise_std,
+            },
+          });
+          setSimTeamIds(currentPair);
+          setSimRunning(false);
+        })
+        .catch(() => { setApiError(true); setSimRunning(false); });
+    } else {
+      setTimeout(() => {
+        const result = simulateMatchup(resolvedA, resolvedB, simN);
+        setSimResult({ ...result, strengthA: null, strengthB: null, isBayesian: false });
+        setSimTeamIds(currentPair);
+        setSimRunning(false);
+      }, 0);
+    }
   };
 
   return (
@@ -124,7 +163,18 @@ export default function Compare({ bracketData = defaultData }) {
             <h2 className="text-white font-semibold">Simulate This Matchup</h2>
             <p className="text-xs text-slate-500 mt-0.5">Win probability using pace, 3P% variance, and A/TO consistency adjustments</p>
           </div>
-          <div className="flex items-center gap-2 ml-auto">
+          <div className="flex items-center gap-3 ml-auto flex-wrap">
+            {/* Model toggle */}
+            <div className="flex bg-court-800 border border-court-600 rounded-lg p-0.5">
+              {[['local', 'JS Local'], ['bayesian', 'Bayesian API']].map(([val, label]) => (
+                <button key={val} onClick={() => setSimMode(val)}
+                  className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
+                    simMode === val ? 'bg-hoop-500 text-white' : 'text-slate-400 hover:text-white'
+                  }`}>
+                  {label}
+                </button>
+              ))}
+            </div>
             <span className="text-xs text-slate-500">Sims:</span>
             {[1000, 5000, 10000].map(v => (
               <button key={v} onClick={() => setSimN(v)}
@@ -135,14 +185,17 @@ export default function Compare({ bracketData = defaultData }) {
               </button>
             ))}
             <button onClick={handleSimulate} disabled={simRunning}
-              className="px-4 py-1.5 bg-hoop-500 hover:bg-hoop-400 disabled:opacity-50 text-white font-semibold rounded-lg text-xs transition-colors ml-1">
+              className="px-4 py-1.5 bg-hoop-500 hover:bg-hoop-400 disabled:opacity-50 text-white font-semibold rounded-lg text-xs transition-colors">
               {simRunning ? 'Running…' : simIsStale ? 'Re-run ↺' : 'Run'}
             </button>
           </div>
         </div>
 
+        {simMode === 'bayesian' && apiError && (
+          <p className="text-xs text-red-400 mb-3">Backend offline — run <code className="bg-court-800 px-1 rounded">uvicorn backend.main:app --port 8000</code></p>
+        )}
         {simIsStale && (
-          <p className="text-xs text-yellow-400/70 mb-3">Teams changed — re-run to update.</p>
+          <p className="text-xs text-yellow-400/70 mb-3">Teams or model changed — re-run to update.</p>
         )}
 
         {simResult && !simIsStale && (
@@ -150,12 +203,19 @@ export default function Compare({ bracketData = defaultData }) {
             {/* Win probability bars */}
             <div className="space-y-2">
               {[
-                { team: resolvedA, prob: simResult.probA, color: 'bg-hoop-500', textColor: 'text-hoop-400' },
-                { team: resolvedB, prob: simResult.probB, color: 'bg-emerald-500', textColor: 'text-emerald-400' },
-              ].map(({ team, prob, color, textColor }) => (
+                { team: resolvedA, prob: simResult.probA, strength: simResult.strengthA, color: 'bg-hoop-500', textColor: 'text-hoop-400' },
+                { team: resolvedB, prob: simResult.probB, strength: simResult.strengthB, color: 'bg-emerald-500', textColor: 'text-emerald-400' },
+              ].map(({ team, prob, strength, color, textColor }) => (
                 <div key={team.id}>
                   <div className="flex justify-between text-xs mb-1">
-                    <span className="text-slate-300 font-medium">{team.name}</span>
+                    <span className="text-slate-300 font-medium">
+                      {team.name}
+                      {strength && (
+                        <span className="text-slate-500 ml-2 font-normal">
+                          strength {strength.mean > 0 ? '+' : ''}{strength.mean.toFixed(1)} <span className="text-slate-600">±{strength.std.toFixed(1)}</span>
+                        </span>
+                      )}
+                    </span>
                     <span className={`font-bold font-mono ${textColor}`}>{prob.toFixed(1)}%</span>
                   </div>
                   <div className="h-3 bg-court-700 rounded-full overflow-hidden">
@@ -164,6 +224,13 @@ export default function Compare({ bracketData = defaultData }) {
                 </div>
               ))}
             </div>
+
+            {/* Bayesian note */}
+            {simResult.isBayesian && (
+              <p className="text-xs text-emerald-400/70 bg-emerald-500/5 border border-emerald-500/20 rounded px-3 py-2">
+                Bayesian mode — strength estimates are schedule-adjusted posteriors. Teams with weak SoS are shrunk toward the field average, widening their uncertainty interval.
+              </p>
+            )}
 
             {/* Factor breakdown */}
             <div className="grid grid-cols-3 gap-3 pt-2 border-t border-court-700">
